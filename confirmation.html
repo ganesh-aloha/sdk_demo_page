@@ -1,0 +1,67 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Confirmation</title>
+<script type="text/javascript">
+  // siteId comes from the URL (?siteId=xyz)
+  var params = new URLSearchParams(location.search);
+  var siteId = params.get('siteId');
+  var redirectToHome = params.get('redirectToHome') ;
+  function withSiteId(url) {
+    return url + (url.indexOf('?') < 0 ? '?' : '&') + 'siteId=' + encodeURIComponent(siteId);
+  }
+</script>
+<script type="text/javascript">
+  var page_name = "Confirmation";
+  var order_number = Number(params.get('order'));
+  var cart_total = Number(params.get('total')); // total amount
+  var cart_items_count = Number(params.get('items'));
+</script>
+<script type="text/javascript">
+  // Builds: <script type="text/javascript" id="" src="https://<siteId>.btttag.com/btt.js"><\/script>
+  (function () {
+    var s = document.createElement('script');
+    s.type = 'text/javascript';
+    s.id = '';
+    s.src = 'https://' + siteId + '.btttag.com/btt.js';
+    document.head.appendChild(s);
+  })();
+</script>
+<style>
+  body { font-family: Arial, sans-serif; margin: 0; background: #f5f5f5; }
+  header { background: #222; color: #fff; padding: 12px 20px; }
+  main { text-align: center; padding: 60px 20px; }
+  .box { background: #fff; border: 1px solid #ddd; border-radius: 6px; padding: 40px; max-width: 500px; margin: 0 auto; }
+  h1 { color: #2a8a2a; }
+  a.btn { display: inline-block; margin-top: 20px; padding: 10px 20px; background: #0066cc; color: #fff; text-decoration: none; border-radius: 4px; }
+</style>
+</head>
+<body>
+<header><strong>BTT Ecom Demo</strong></header>
+<main>
+  <div class="box">
+    <h1>Thank You!</h1>
+    <p>Your order has been placed successfully.</p>
+    <p id="order"></p>
+    <p id="summary"></p>
+    <a class="btn" href="index.html" id="homeLink">Continue Shopping</a>
+  </div>
+</main>
+<script>
+  // Link back to Products only when ?redirectToHome is in the URL.
+  if (!params.has('redirectToHome')) document.getElementById('homeLink').remove();
+
+  // Keep siteId on links to the other pages.
+  document.querySelectorAll('a[href$=".html"]').forEach(function (a) {
+    a.href = withSiteId(a.getAttribute('href'));
+  });
+  if (order_number) {
+    document.getElementById('order').textContent = 'Order #' + order_number;
+    document.getElementById('summary').textContent =
+      cart_items_count + ' item(s) · Total $' + cart_total.toFixed(2);
+  }
+</script>
+</body>
+</html>
