@@ -1,0 +1,132 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Cart</title>
+<script type="text/javascript">
+  var page_name = "Cart - Web";
+</script>
+<script type="text/javascript">
+  // siteId comes from the URL (?siteId=xyz)
+  var params = new URLSearchParams(location.search);
+  var siteId = params.get('siteId') ;
+  var redirectToHome = params.get('redirectToHome') ;
+  function withSiteId(url) {
+    return url + (url.indexOf('?') < 0 ? '?' : '&') + 'siteId=' + encodeURIComponent(siteId);
+  }
+</script>
+<script type="text/javascript">
+  // Builds: <script type="text/javascript" id="" src="https://<siteId>.btttag.com/btt.js"><\/script>
+  (function () {
+    var s = document.createElement('script');
+    s.type = 'text/javascript';
+    s.id = '';
+    s.src = 'https://' + siteId + '.btttag.com/btt.js';
+    document.head.appendChild(s);
+  })();
+</script>
+  
+<style>
+  body { font-family: Arial, sans-serif; margin: 0; background: #f5f5f5; }
+  header { background: #222; color: #fff; padding: 12px 20px; display: flex; justify-content: space-between; align-items: center; }
+  header a { color: #fff; }
+  main { padding: 20px; max-width: 800px; margin: 0 auto; }
+  table { width: 100%; border-collapse: collapse; background: #fff; }
+  th, td { padding: 10px; border-bottom: 1px solid #ddd; text-align: left; }
+  td img { width: 50px; height: 50px; object-fit: contain; }
+  .total { text-align: right; font-size: 18px; font-weight: bold; margin: 16px 0; }
+  button { padding: 10px 20px; background: #0066cc; color: #fff; border: 0; border-radius: 4px; cursor: pointer; float: right; }
+  button:disabled { opacity: .6; }
+  #msg { color: #c00; }
+</style>
+</head>
+<body>
+<header>
+  <strong>BTT Ecom Demo</strong>
+  <a href="index.html" id="homeLink">Products</a>
+</header>
+<main>
+  <h2>Cart</h2>
+  <p id="msg">Loading...</p>
+  <div id="cart"></div>
+</main>
+
+<script>
+  // Link back to Products only when ?redirectToHome is in the URL.
+  if (!params.has('redirectToHome')) document.getElementById('homeLink').remove();
+
+  // Keep siteId on links to the other pages.
+  document.querySelectorAll('a[href$=".html"]').forEach(function (a) {
+    a.href = withSiteId(a.getAttribute('href'));
+  });
+  const API = 'https://btt-api.ganeshw-aloha.workers.dev/btriangle/api'; 
+  // Cart id from the URL (cart.html?cartId=6028)
+  const cartId = params.get('cartId');
+  let cartTotal = 0, cartItemsCount = 0;   // passed to confirmation.html on checkout
+
+  async function loadCart() {
+    const msg = document.getElementById('msg');
+    if (!cartId) { msg.textContent = 'Your cart is empty.'; return; }
+    try {
+      // Cart items only carry a product id, so fetch products to show names/images.
+      const [cartRes, prodRes] = await Promise.all([
+        fetch(API + '/cart/' + cartId + '/'),
+        fetch(API + '/product/?format=json'),
+      ]);
+      if (!cartRes.ok) throw new Error('HTTP ' + cartRes.status);
+      const cart = await cartRes.json();
+      const products = prodRes.ok ? await prodRes.json() : [];
+      const items = cart.items || [];
+      if (!items.length) { msg.textContent = 'Your cart is empty.'; return; }
+      msg.textContent = 'Cart #' + cart.id;
+
+      let total = 0;
+      const rows = items.map(item => {
+        const p = products.find(p => p.id === item.product) || { name: 'Product #' + item.product, image: '' };
+        const lineTotal = Number(item.price) * item.quantity;
+        total += lineTotal;
+        return `<tr>
+          <td><img src="${p.image}" alt="" onerror="this.style.visibility='hidden'"></td>
+          <td>${p.name}</td>
+          <td>${item.quantity}</td>
+          <td>$${item.price}</td>
+          <td>$${lineTotal.toFixed(2)}</td>
+        </tr>`;
+      }).join('');
+      total += Number(cart.shipping || 0);
+      cartTotal = total;
+      cartItemsCount = items.reduce((n, item) => n + Number(item.quantity), 0);
+
+      document.getElementById('cart').innerHTML = `
+        <table>
+          <tr><th></th><th>Product</th><th>Qty</th><th>Price</th><th>Total</th></tr>
+          ${rows}
+        </table>
+        <div class="total">Shipping: $${cart.shipping}<br>Total: $${total.toFixed(2)}</div>
+        <button id="checkout">Checkout</button>`;
+      document.getElementById('checkout').onclick = checkout;
+    } catch (e) {
+      msg.textContent = 'Failed to load cart: ' + e.message;
+    }
+  }
+
+  async function checkout(e) {
+    e.target.disabled = true;
+    try {
+      const res = await fetch(API + '/cart/' + cartId + '/checkout/', { method: 'DELETE' });
+      if (!res.ok) throw new Error('HTTP ' + res.status);
+      localStorage.removeItem('cartId');
+      location.href = 'confirmation.html?' + new URLSearchParams({
+        siteId: siteId, order: cartId, total: cartTotal.toFixed(2), items: cartItemsCount,
+      }) + (params.has('redirectToHome') ? '&redirectToHome=' + encodeURIComponent(params.get('redirectToHome')) : '');
+    } catch (err) {
+      alert('Checkout failed: ' + err.message);
+      e.target.disabled = false;
+    }
+  }
+
+  loadCart();
+</script>
+</body>
+</html>
