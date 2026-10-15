@@ -53,8 +53,8 @@
 </main>
 
 <script>
-  // Link back to Products only when ?redirectToHome is in the URL.
-  if (!params.has('redirectToHome')) document.getElementById('homeLink').remove();
+  // Link back to Products only when ?redirectToHome=true.
+  if (redirectToHome !== 'true') document.getElementById('homeLink').remove();
 
   // Keep siteId on links to the other pages.
   document.querySelectorAll('a[href$=".html"]').forEach(function (a) {
