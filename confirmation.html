@@ -52,6 +52,11 @@
 <script>
   // Link back to Products only when ?redirectToHome=true.
   if (redirectToHome !== 'true') document.getElementById('homeLink').remove();
+  else document.getElementById('homeLink').addEventListener('click', function (e) {
+    // replace(): index takes confirmation's place in history, so Back from index skips it.
+    e.preventDefault();
+    location.replace(this.href);
+  });
 
   // Keep siteId on links to the other pages.
   document.querySelectorAll('a[href$=".html"]').forEach(function (a) {
